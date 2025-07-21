@@ -1,0 +1,13 @@
+{
+  "name": "foreach-basic-examples",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Basic usage examples for @oxog/foreach",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@oxog/foreach": "file:../.."
+  }
+}

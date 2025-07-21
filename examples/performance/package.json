@@ -1,0 +1,15 @@
+{
+  "name": "foreach-performance-examples",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Performance examples for @oxog/foreach",
+  "main": "chunked-processing.js",
+  "scripts": {
+    "chunked": "node chunked-processing.js",
+    "lazy": "node lazy-evaluation.js",
+    "start": "npm run chunked && npm run lazy"
+  },
+  "dependencies": {
+    "@oxog/foreach": "file:../.."
+  }
+}
