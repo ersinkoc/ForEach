@@ -1,11 +1,11 @@
 import {
-  validateCallback,
-  validateTarget,
-  validateForEachOptions,
   validateAsyncOptions,
+  validateCallback,
   validateChunkedOptions,
+  validateForEachOptions,
   validateLazyOptions,
   validatePlugin,
+  validateTarget,
 } from '../../../src/utils/validators';
 import { ForEachError, ValidationError } from '../../../src/types/errors';
 

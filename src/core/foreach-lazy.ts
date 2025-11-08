@@ -1,6 +1,6 @@
 import type { ILazyIterator, ILazyOptions } from '../types';
-import { isArray, hasOwnProperty } from '../utils/type-guards';
-import { validateTarget, validateLazyOptions } from '../utils/validators';
+import { hasOwnProperty, isArray } from '../utils/type-guards';
+import { validateLazyOptions, validateTarget } from '../utils/validators';
 
 abstract class BaseLazyIterator<T> implements ILazyIterator<T> {
   protected _buffer: T[] = [];
@@ -222,7 +222,7 @@ export function forEachLazy<T>(
   if (isArray(target)) {
     return new ArrayLazyIterator(target, options, options.reverse);
   } else {
-    return new ObjectLazyIterator(target as Record<string, T>, options, options.reverse);
+    return new ObjectLazyIterator(target, options, options.reverse);
   }
 }
 
@@ -246,12 +246,12 @@ export function* forEachGenerator<T>(
       yield item;
     }
   } else {
-    const keys = Object.keys(target as Record<string, T>);
+    const keys = Object.keys(target);
     const items = options.reverse ? keys.reverse() : keys;
     
     for (const key of items) {
-      if (hasOwnProperty(target as Record<string, T>, key)) {
-        const value = (target as Record<string, T>)[key];
+      if (hasOwnProperty(target, key)) {
+        const value = (target)[key];
         yield [key, value!] as [string, T];
       }
     }

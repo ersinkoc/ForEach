@@ -1,7 +1,7 @@
 import type {
-  IIterationPlugin,
-  IIterationContext,
   IForEachCore,
+  IIterationContext,
+  IIterationPlugin,
 } from '../types';
 import { PluginError } from '../types/errors';
 import { validatePlugin } from '../utils/validators';

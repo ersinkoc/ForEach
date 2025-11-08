@@ -1,19 +1,19 @@
 import {
+  hasOwnProperty,
   isArray,
+  isAsyncFunction,
+  isBoolean,
+  isCallable,
+  isDefined,
+  isFunction,
+  isIterable,
+  isNullOrUndefined,
+  isNumber,
   isObject,
   isPlainObject,
-  isFunction,
-  isCallable,
-  isPromise,
-  isAsyncFunction,
-  isIterable,
-  isNumber,
   isPositiveInteger,
+  isPromise,
   isString,
-  isBoolean,
-  isNullOrUndefined,
-  isDefined,
-  hasOwnProperty,
 } from '../../../src/utils/type-guards';
 
 describe('Type Guards', () => {
@@ -21,7 +21,7 @@ describe('Type Guards', () => {
     it('should return true for arrays', () => {
       expect(isArray([])).toBe(true);
       expect(isArray([1, 2, 3])).toBe(true);
-      expect(isArray(new Array())).toBe(true);
+      expect(isArray([])).toBe(true);
     });
 
     it('should return false for non-arrays', () => {

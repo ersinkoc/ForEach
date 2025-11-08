@@ -1,14 +1,14 @@
 import type {
   ArrayCallback,
-  ObjectCallback,
   AsyncArrayCallback,
   AsyncObjectCallback,
+  IAsyncForEachOptions,
   IChunkedOptions,
   IForEachOptions,
-  IAsyncForEachOptions,
+  ObjectCallback,
 } from '../types';
-import { isArray, hasOwnProperty } from '../utils/type-guards';
-import { validateCallback, validateTarget, validateChunkedOptions } from '../utils/validators';
+import { hasOwnProperty, isArray } from '../utils/type-guards';
+import { validateCallback, validateChunkedOptions, validateTarget } from '../utils/validators';
 import { PerformanceTracker } from '../utils/performance';
 
 export function forEachChunked<T>(
@@ -38,7 +38,7 @@ export function forEachChunked<T>(
       forEachArrayChunked(target, callback as ArrayCallback<T>, options);
     } else {
       forEachObjectChunked(
-        target as Record<string, T>,
+        target,
         callback as ObjectCallback<T>,
         options
       );
@@ -66,8 +66,10 @@ function forEachArrayChunked<T>(
     for (let i = start; i < end; i++) {
       const actualIndex = reverse ? length - 1 - i : i;
 
-      const item = items[i];
-      // Process all indices, including holes as undefined
+      // Skip holes in sparse arrays (like native forEach)
+      if (!(i in items)) continue;
+
+      const item = items[i] as T;
 
       try {
         callback.call(thisArg, item, actualIndex, array);
@@ -151,7 +153,7 @@ export async function forEachChunkedAsync<T>(
       await forEachArrayChunkedAsync(target, callback as AsyncArrayCallback<T>, options);
     } else {
       await forEachObjectChunkedAsync(
-        target as Record<string, T>,
+        target,
         callback as AsyncObjectCallback<T>,
         options
       );
@@ -212,8 +214,10 @@ async function forEachArrayChunkedAsync<T>(
       for (let i = start; i < end; i++) {
         const actualIndex = reverse ? length - 1 - i : i;
 
-        const item = items[i];
-        // Process all indices, including holes as undefined
+        // Skip holes in sparse arrays (like native forEach)
+        if (!(i in items)) continue;
+
+        const item = items[i] as T;
 
         try {
           await callback.call(thisArg, item, actualIndex, array);

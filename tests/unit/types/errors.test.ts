@@ -1,9 +1,9 @@
 import {
   ForEachError,
   ForEachErrorCode,
-  ValidationError,
-  TimeoutError,
   PluginError,
+  TimeoutError,
+  ValidationError,
 } from '../../../src/types/errors';
 
 describe('Error Classes', () => {
