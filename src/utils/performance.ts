@@ -45,14 +45,15 @@ export class PerformanceTracker {
 
 export function measurePerformance<T>(
   fn: () => T,
-  label?: string
+  label?: string,
+  logger?: (message: string) => void
 ): { result: T; duration: number } {
   const start = performance.now();
   const result = fn();
   const duration = performance.now() - start;
 
-  if (label) {
-    console.log(`[Performance] ${label}: ${duration.toFixed(2)}ms`);
+  if (label && logger) {
+    logger(`[Performance] ${label}: ${duration.toFixed(2)}ms`);
   }
 
   return { result, duration };
@@ -60,14 +61,15 @@ export function measurePerformance<T>(
 
 export async function measureAsyncPerformance<T>(
   fn: () => Promise<T>,
-  label?: string
+  label?: string,
+  logger?: (message: string) => void
 ): Promise<{ result: T; duration: number }> {
   const start = performance.now();
   const result = await fn();
   const duration = performance.now() - start;
 
-  if (label) {
-    console.log(`[Performance] ${label}: ${duration.toFixed(2)}ms`);
+  if (label && logger) {
+    logger(`[Performance] ${label}: ${duration.toFixed(2)}ms`);
   }
 
   return { result, duration };

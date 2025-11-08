@@ -1,13 +1,13 @@
 import {
   forEach,
   forEachAsync,
-  forEachParallel,
-  forEachLazy,
   forEachChunked,
   forEachChunkedAsync,
   ForEachCore,
-  type IIterationPlugin,
+  forEachLazy,
+  forEachParallel,
   type IIterationContext,
+  type IIterationPlugin,
 } from '../../src';
 
 describe('Complete Workflow Integration Tests', () => {
@@ -291,7 +291,7 @@ describe('Complete Workflow Integration Tests', () => {
   });
 
   describe('Edge cases and special scenarios', () => {
-    it('should handle sparse arrays', () => {
+    it('should handle sparse arrays by skipping holes (like native forEach)', () => {
       const sparse = new Array(5);
       sparse[1] = 'a';
       sparse[3] = 'b';
@@ -301,12 +301,10 @@ describe('Complete Workflow Integration Tests', () => {
         result.push([index, value]);
       });
 
+      // Should only iterate over existing indices, skipping holes
       expect(result).toEqual([
-        [0, undefined],
         [1, 'a'],
-        [2, undefined],
         [3, 'b'],
-        [4, undefined],
       ]);
     });
 

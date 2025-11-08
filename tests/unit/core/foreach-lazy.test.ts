@@ -1,4 +1,4 @@
-import { forEachLazy, forEachGenerator } from '../../../src/core/foreach-lazy';
+import { forEachGenerator, forEachLazy } from '../../../src/core/foreach-lazy';
 
 describe('forEachLazy', () => {
   describe('Array lazy iteration', () => {

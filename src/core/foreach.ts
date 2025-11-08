@@ -1,12 +1,12 @@
 import type {
   ArrayCallback,
-  ObjectCallback,
   IForEachOptions,
   IIterationContext,
+  ObjectCallback,
 } from '../types';
 import { ForEachError, ForEachErrorCode } from '../types/errors';
-import { isArray, hasOwnProperty } from '../utils/type-guards';
-import { validateCallback, validateTarget, validateForEachOptions } from '../utils/validators';
+import { hasOwnProperty, isArray } from '../utils/type-guards';
+import { validateCallback, validateForEachOptions, validateTarget } from '../utils/validators';
 import { PerformanceTracker } from '../utils/performance';
 
 class IterationContextImpl implements IIterationContext {
@@ -63,7 +63,7 @@ export function forEach<T>(
     if (isArray(target)) {
       forEachArray(target, callback as ArrayCallback<T>, options);
     } else {
-      forEachObject(target as Record<string, T>, callback as ObjectCallback<T>, options);
+      forEachObject(target, callback as ObjectCallback<T>, options);
     }
   } finally {
     tracker.stop();
@@ -83,8 +83,10 @@ function forEachArray<T>(
     const actualIndex = reverse ? length - 1 - i : i;
     const context = new IterationContextImpl(actualIndex, length, i === 0, i === length - 1);
 
-    const item = items[i];
-    // Process all indices, including holes as undefined
+    // Skip holes in sparse arrays (like native forEach)
+    if (!(i in items)) continue;
+
+    const item = items[i] as T;
 
     try {
       const result = callback.call(thisArg, item, actualIndex, array);
@@ -166,8 +168,10 @@ export function forEachWithContext<T>(
       const actualIndex = options.reverse ? length - 1 - i : i;
       const context = new IterationContextImpl(actualIndex, length, i === 0, i === length - 1);
 
-      const item = items[i];
-      // Process all indices, including holes as undefined
+      // Skip holes in sparse arrays (like native forEach)
+      if (!(i in items)) continue;
+
+      const item = items[i] as T;
 
       try {
         callback.call(options.thisArg, item, actualIndex, context);
@@ -184,13 +188,13 @@ export function forEachWithContext<T>(
       }
     }
   } else {
-    const keys = Object.keys(target as Record<string, T>);
+    const keys = Object.keys(target);
     const items = options.reverse ? keys.reverse() : keys;
     const length = items.length;
 
     for (let i = 0; i < length; i++) {
       const key = items[i];
-      const obj = target as Record<string, T>;
+      const obj = target;
       if (key == null || !hasOwnProperty(obj, key)) continue;
 
       const context = new IterationContextImpl(i, length, i === 0, i === length - 1);

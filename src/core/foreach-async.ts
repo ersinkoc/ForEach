@@ -5,11 +5,11 @@ import type {
   IIterationContext,
 } from '../types';
 import { ForEachError, ForEachErrorCode, TimeoutError } from '../types/errors';
-import { isArray, hasOwnProperty } from '../utils/type-guards';
+import { hasOwnProperty, isArray } from '../utils/type-guards';
 import {
+  validateAsyncOptions,
   validateCallback,
   validateTarget,
-  validateAsyncOptions,
 } from '../utils/validators';
 import { PerformanceTracker } from '../utils/performance';
 
@@ -68,7 +68,7 @@ export async function forEachAsync<T>(
       await forEachArrayAsync(target, callback as AsyncArrayCallback<T>, options);
     } else {
       await forEachObjectAsync(
-        target as Record<string, T>,
+        target,
         callback as AsyncObjectCallback<T>,
         options
       );
@@ -96,8 +96,10 @@ async function forEachArrayAsync<T>(
       i === length - 1
     );
 
-    const item = items[i];
-    // Process all indices, including holes as undefined
+    // Skip holes in sparse arrays (like native forEach)
+    if (!(i in items)) continue;
+
+    const item = items[i] as T;
 
     try {
       const promise = Promise.resolve(
@@ -214,7 +216,7 @@ export async function forEachParallel<T>(
       );
     } else {
       await forEachObjectParallel(
-        target as Record<string, T>,
+        target,
         callback as AsyncObjectCallback<T>,
         options,
         concurrency,
@@ -245,9 +247,14 @@ async function forEachArrayParallel<T>(
       const actualIndex = reverse ? length - 1 - i : i;
       const promise = semaphore.acquire().then(async (release) => {
         try {
-          const item = items[i];
-          // Process all indices, including holes as undefined
-          
+          // Skip holes in sparse arrays (like native forEach)
+          if (!(i in items)) {
+            release();
+            return;
+          }
+
+          const item = items[i] as T;
+
           const callPromise = Promise.resolve(
             callback.call(thisArg, item, actualIndex, array)
           );
@@ -358,7 +365,7 @@ async function forEachObjectParallel<T>(
             release();
             return;
           }
-          
+
           const callPromise = Promise.resolve(
             callback.call(thisArg, value, key, object)
           );
@@ -368,6 +375,14 @@ async function forEachObjectParallel<T>(
           } else {
             await callPromise;
           }
+        } catch (error) {
+          if (error instanceof TimeoutError) {
+            throw error; // Always throw timeout errors
+          }
+          if (breakOnError) {
+            throw error;
+          }
+          // Silently continue if breakOnError is false
         } finally {
           release();
         }
@@ -376,7 +391,19 @@ async function forEachObjectParallel<T>(
       results.push(promise);
     }
 
-    await Promise.all(results);
+    // For timeout errors, we always want them to propagate
+    // For other errors, respect breakOnError setting
+    try {
+      await Promise.all(results);
+    } catch (error) {
+      if (error instanceof TimeoutError) {
+        throw error; // Always throw timeout errors
+      }
+      if (breakOnError) {
+        throw error;
+      }
+      // Continue silently for other errors when breakOnError is false
+    }
   } else {
     const chunks = createChunks(items, concurrency);
 

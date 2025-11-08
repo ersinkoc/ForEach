@@ -1,19 +1,19 @@
 import { ForEachError, ForEachErrorCode, ValidationError } from '../types/errors';
 import {
   isArray,
-  isObject,
-  isFunction,
-  isPositiveInteger,
-  isNumber,
   isBoolean,
   isDefined,
+  isFunction,
+  isNumber,
+  isObject,
+  isPositiveInteger,
 } from './type-guards';
 import type {
-  IForEachOptions,
   IAsyncForEachOptions,
   IChunkedOptions,
-  ILazyOptions,
+  IForEachOptions,
   IIterationPlugin,
+  ILazyOptions,
 } from '../types';
 
 export function validateCallback(callback: unknown, errorMessage?: string): void {

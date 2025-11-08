@@ -1,14 +1,14 @@
 import {
   forEach,
   forEachAsync,
-  forEachParallel,
-  forEachLazy,
   forEachChunked,
   ForEachCore,
-  type IIterationPlugin,
-  type IIterationContext,
-  type IForEachOptions,
+  forEachLazy,
+  forEachParallel,
   type IAsyncForEachOptions,
+  type IForEachOptions,
+  type IIterationContext,
+  type IIterationPlugin,
 } from '@oxog/foreach';
 
 // Define strongly typed data structures

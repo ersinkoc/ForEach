@@ -1,6 +1,6 @@
-import { PluginManager, ForEachCore } from '../../../src/plugins/plugin-manager';
+import { ForEachCore, PluginManager } from '../../../src/plugins/plugin-manager';
 import { PluginError } from '../../../src/types/errors';
-import type { IIterationPlugin, IIterationContext } from '../../../src/types';
+import type { IIterationContext, IIterationPlugin } from '../../../src/types';
 
 describe('PluginManager', () => {
   let manager: PluginManager;

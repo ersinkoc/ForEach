@@ -1,9 +1,9 @@
 import {
-  PerformanceTracker,
-  measurePerformance,
-  measureAsyncPerformance,
-  throttle,
   debounce,
+  measureAsyncPerformance,
+  measurePerformance,
+  PerformanceTracker,
+  throttle,
 } from '../../../src/utils/performance';
 
 describe('Performance Utilities', () => {
@@ -84,13 +84,19 @@ describe('Performance Utilities', () => {
       expect(duration).toBeGreaterThanOrEqual(0);
     });
 
-    it('should log performance with label', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
-      measurePerformance(() => 42, 'Test Operation');
-      
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[Performance] Test Operation:'));
-      consoleSpy.mockRestore();
+    it('should log performance with label and logger', () => {
+      const mockLogger = jest.fn();
+
+      measurePerformance(() => 42, 'Test Operation', mockLogger);
+
+      expect(mockLogger).toHaveBeenCalledWith(expect.stringContaining('[Performance] Test Operation:'));
+    });
+
+    it('should not log without logger', () => {
+      const result = measurePerformance(() => 42, 'Test Operation');
+
+      expect(result.result).toBe(42);
+      expect(result.duration).toBeGreaterThanOrEqual(0);
     });
   });
 
@@ -105,13 +111,19 @@ describe('Performance Utilities', () => {
       expect(duration).toBeGreaterThanOrEqual(0);
     });
 
-    it('should log async performance with label', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-      
-      await measureAsyncPerformance(async () => 42, 'Async Operation');
-      
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[Performance] Async Operation:'));
-      consoleSpy.mockRestore();
+    it('should log async performance with label and logger', async () => {
+      const mockLogger = jest.fn();
+
+      await measureAsyncPerformance(async () => 42, 'Async Operation', mockLogger);
+
+      expect(mockLogger).toHaveBeenCalledWith(expect.stringContaining('[Performance] Async Operation:'));
+    });
+
+    it('should not log without logger', async () => {
+      const result = await measureAsyncPerformance(async () => 42, 'Async Operation');
+
+      expect(result.result).toBe(42);
+      expect(result.duration).toBeGreaterThanOrEqual(0);
     });
   });
 
