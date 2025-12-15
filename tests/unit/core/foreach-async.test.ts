@@ -307,4 +307,55 @@ describe('forEachParallel', () => {
       expect(maxConcurrent.value).toBeLessThanOrEqual(10); // default concurrency
     });
   });
+
+  describe('Bug regression tests', () => {
+    // BUG-001: Array with duplicate values should get correct indices
+    it('should provide correct indices for arrays with duplicate values (BUG-001)', async () => {
+      const arr = [1, 2, 1, 3, 1]; // Array with duplicate values
+      const indexMap = new Map<string, number>(); // key is "value-index" to track each call
+
+      await forEachParallel(arr, async (value, index) => {
+        indexMap.set(`${value}-${index}`, index);
+      }, { concurrency: 2, preserveOrder: false });
+
+      // Each index should be unique and correct
+      expect(indexMap.get('1-0')).toBe(0);
+      expect(indexMap.get('2-1')).toBe(1);
+      expect(indexMap.get('1-2')).toBe(2);
+      expect(indexMap.get('3-3')).toBe(3);
+      expect(indexMap.get('1-4')).toBe(4);
+      expect(indexMap.size).toBe(5);
+    });
+
+    // BUG-002: Error handling in forEachObjectParallel non-preserveOrder path
+    it('should handle errors in object parallel without preserveOrder (BUG-002)', async () => {
+      const obj = { a: 1, b: 2, c: 3, d: 4 };
+      const processed: string[] = [];
+      const errors: string[] = [];
+
+      await forEachParallel(obj, async (value, key) => {
+        if (value === 2) {
+          errors.push(key);
+          throw new Error(`Error for ${key}`);
+        }
+        processed.push(key);
+      }, { concurrency: 2, preserveOrder: false, breakOnError: false });
+
+      // Should continue processing despite errors
+      expect(errors).toEqual(['b']);
+      expect(processed.sort()).toEqual(['a', 'c', 'd']);
+    });
+
+    it('should throw on object parallel error when breakOnError is true (BUG-002)', async () => {
+      const obj = { a: 1, b: 2, c: 3 };
+
+      await expect(
+        forEachParallel(obj, async (value, key) => {
+          if (value === 2) {
+            throw new Error(`Error for ${key}`);
+          }
+        }, { concurrency: 1, preserveOrder: false, breakOnError: true })
+      ).rejects.toThrow();
+    });
+  });
 });

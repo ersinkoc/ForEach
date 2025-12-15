@@ -2,7 +2,6 @@ import type {
   AsyncArrayCallback,
   AsyncObjectCallback,
   IAsyncForEachOptions,
-  IIterationContext,
 } from '../types';
 import { ForEachError, ForEachErrorCode, TimeoutError } from '../types/errors';
 import { hasOwnProperty, isArray } from '../utils/type-guards';
@@ -13,33 +12,8 @@ import {
 } from '../utils/validators';
 import { PerformanceTracker } from '../utils/performance';
 
-class AsyncIterationContext implements IIterationContext {
-  private _shouldBreak = false;
-  private _shouldSkip = false;
-
-  constructor(
-    public readonly index: number,
-    public readonly total: number,
-    public readonly isFirst: boolean,
-    public readonly isLast: boolean
-  ) {}
-
-  public break(): void {
-    this._shouldBreak = true;
-  }
-
-  public skip(): void {
-    this._shouldSkip = true;
-  }
-
-  public get shouldBreak(): boolean {
-    return this._shouldBreak;
-  }
-
-  public get shouldSkip(): boolean {
-    return this._shouldSkip;
-  }
-}
+// Note: AsyncIterationContext was removed as dead code (BUG-004 fix)
+// The context pattern is only used in forEachWithContext, not in forEachAsync
 
 export async function forEachAsync<T>(
   array: T[],
@@ -89,12 +63,6 @@ async function forEachArrayAsync<T>(
 
   for (let i = 0; i < length; i++) {
     const actualIndex = reverse ? length - 1 - i : i;
-    const context = new AsyncIterationContext(
-      actualIndex,
-      length,
-      i === 0,
-      i === length - 1
-    );
 
     // Skip holes in sparse arrays (like native forEach)
     if (!(i in items)) continue;
@@ -110,12 +78,10 @@ async function forEachArrayAsync<T>(
         ? await withTimeout(promise, timeout, `Index ${actualIndex}`)
         : await promise;
 
-      if (context.shouldBreak || (breakOnReturn && result !== undefined)) {
+      // BUG-004 fix: Removed dead code for context.shouldBreak/shouldSkip
+      // Context is not passed to callback, use breakOnReturn instead
+      if (breakOnReturn && result !== undefined) {
         break;
-      }
-
-      if (context.shouldSkip) {
-        continue;
       }
     } catch (error) {
       if (error instanceof TimeoutError) {
@@ -146,11 +112,9 @@ async function forEachObjectAsync<T>(
     const key = items[i];
     if (key == null || !hasOwnProperty(object, key)) continue;
 
-    const context = new AsyncIterationContext(i, length, i === 0, i === length - 1);
-
     const value = object[key];
     if (value === undefined) continue;
-    
+
     try {
       const promise = Promise.resolve(
         callback.call(thisArg, value, key, object)
@@ -160,12 +124,10 @@ async function forEachObjectAsync<T>(
         ? await withTimeout(promise, timeout, `Key "${key}"`)
         : await promise;
 
-      if (context.shouldBreak || (breakOnReturn && result !== undefined)) {
+      // BUG-004 fix: Removed dead code for context.shouldBreak/shouldSkip
+      // Context is not passed to callback, use breakOnReturn instead
+      if (breakOnReturn && result !== undefined) {
         break;
-      }
-
-      if (context.shouldSkip) {
-        continue;
       }
     } catch (error) {
       if (error instanceof TimeoutError) {
@@ -294,13 +256,14 @@ async function forEachArrayParallel<T>(
       // Continue silently for other errors when breakOnError is false
     }
   } else {
-    const chunks = createChunks(items, concurrency);
+    // BUG-001 fix: Track indices to handle duplicate values correctly
+    // Using indexOf would return first occurrence for duplicates
+    const indexedItems = items.map((item, i) => ({ item, originalIndex: i }));
+    const chunks = createChunks(indexedItems, concurrency);
 
     for (const chunk of chunks) {
-      const promises = chunk.map(async (item) => {
-        const actualIndex = reverse
-          ? length - 1 - items.indexOf(item)
-          : items.indexOf(item);
+      const promises = chunk.map(async ({ item, originalIndex: i }) => {
+        const actualIndex = reverse ? length - 1 - i : i;
 
         try {
           const callPromise = Promise.resolve(
@@ -413,18 +376,42 @@ async function forEachObjectParallel<T>(
 
         const value = object[key];
         if (value === undefined) return;
-        
-        const callPromise = Promise.resolve(
-          callback.call(thisArg, value, key, object)
-        );
 
-        if (timeout) {
-          return withTimeout(callPromise, timeout, `Key "${key}"`);
+        // BUG-002 fix: Add error handling consistent with preserveOrder path
+        try {
+          const callPromise = Promise.resolve(
+            callback.call(thisArg, value, key, object)
+          );
+
+          if (timeout) {
+            await withTimeout(callPromise, timeout, `Key "${key}"`);
+          } else {
+            await callPromise;
+          }
+        } catch (error) {
+          if (error instanceof TimeoutError) {
+            throw error; // Always throw timeout errors
+          }
+          if (breakOnError) {
+            throw error;
+          }
+          // Silently continue if breakOnError is false
         }
-        return callPromise;
       });
 
-      await Promise.all(promises);
+      // For timeout errors, we always want them to propagate
+      // For other errors, respect breakOnError setting
+      try {
+        await Promise.all(promises);
+      } catch (error) {
+        if (error instanceof TimeoutError) {
+          throw error; // Always throw timeout errors
+        }
+        if (breakOnError) {
+          throw error;
+        }
+        // Continue silently for other errors when breakOnError is false
+      }
     }
   }
 }

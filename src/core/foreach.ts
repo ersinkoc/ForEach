@@ -81,7 +81,6 @@ function forEachArray<T>(
 
   for (let i = 0; i < length; i++) {
     const actualIndex = reverse ? length - 1 - i : i;
-    const context = new IterationContextImpl(actualIndex, length, i === 0, i === length - 1);
 
     // Skip holes in sparse arrays (like native forEach)
     if (!(i in items)) continue;
@@ -91,12 +90,10 @@ function forEachArray<T>(
     try {
       const result = callback.call(thisArg, item, actualIndex, array);
 
-      if (context.shouldBreak || (breakOnReturn && result !== undefined)) {
+      // BUG-003 fix: Removed dead code for context.shouldBreak/shouldSkip
+      // Context is not passed to callback, use breakOnReturn instead
+      if (breakOnReturn && result !== undefined) {
         break;
-      }
-
-      if (context.shouldSkip) {
-        continue;
       }
     } catch (error) {
       if (breakOnError) {
@@ -124,20 +121,16 @@ function forEachObject<T>(
     const key = items[i];
     if (key == null || !hasOwnProperty(object, key)) continue;
 
-    const context = new IterationContextImpl(i, length, i === 0, i === length - 1);
-
     const value = object[key];
     if (value === undefined) continue;
-    
+
     try {
       const result = callback.call(thisArg, value, key, object);
 
-      if (context.shouldBreak || (breakOnReturn && result !== undefined)) {
+      // BUG-003 fix: Removed dead code for context.shouldBreak/shouldSkip
+      // Context is not passed to callback, use breakOnReturn instead
+      if (breakOnReturn && result !== undefined) {
         break;
-      }
-
-      if (context.shouldSkip) {
-        continue;
       }
     } catch (error) {
       if (breakOnError) {
